@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head >
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta de Termômetros</title> 
+  <style> 
+
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --vli-blue:      #0074cd;
+      --vli-blue-dk:   #005fa8;
+      --vli-blue-lt:   #e6f3fb;
+      --vli-orange:    #e77314;
+      --vli-orange-dk: #c45e0a;
+      --vli-orange-lt: #fef3ea;
+      --ok:            #707472;
+      --ok-bg:         #e0fdeb;
+      --surface:       #ffffff;
+      --bg:            #f0f5fa;
+      --muted:         #6b7a90;
+      --border:        #dde3ec;
+      --text:          #1a2332;
+      --radius:        12px;
+      --radius-lg:     18px;
+      --shadow-sm:     0 1px 4px rgba(0,0,0,.08);
+      --shadow:        0 4px 20px rgba(0,0,0,.10);
+    }
+    tbody tr.row-remodelado {
+  animation: linha-remodelada 1.2s infinite;
+}
+
+@keyframes linha-remodelada {
+  0%,100% {
+    background: #edf6ff;
+  }
+  50% {
+    background: #cfe8ff;
+  }
+}
+
+    body {
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: linear-gradient(135deg, #00406e 0%, var(--vli-blue) 60%, #0088e8 100%);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      box-shadow: 0 3px 16px rgba(0,0,0,.28);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Orange accent stripe on the left */
+    .topbar::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 5px;
+      background: var(--vli-orange);
+    }
+
+    .topbar-logo {
+      padding: 18px 24px 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-right: 1px solid rgba(255,255,255,.15);
+      margin-right: 24px;
+    }
+
+    .topbar-logo-mark {
+      width: 42px; height: 42px;
+      background: var(--vli-orange);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 2px 8px rgba(231,115,20,.40);
+    }
+
+    .topbar-brand { color: #fff; }
+    .topbar-brand-name  { font-size: 1.1rem; font-weight: 800; letter-spacing: -.01em; }
+    .topbar-brand-sub   { font-size: .72rem; color: rgba(255,255,255,.55); margin-top: 1px; }
+
+    .topbar-divider { width: 1px; height: 36px; background: rgba(255,255,255,.15); margin-right: 20px; }
+
+    .topbar-title-wrap { flex: 1; padding: 18px 0; }
+    .topbar-title    { color: #fff; font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; }
+    .topbar-subtitle { color: rgba(255,255,255,.55); font-size: .76rem; margin-top: 2px; }
+
+    /* ── Page ── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 0; }
+
+    /* ── Search card ── */
+    .search-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 28px 30px;
+      margin-bottom: 24px;
+      border-top: 3px solid var(--vli-orange);
+    }
+
+    .search-label {
+      font-size: .73rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .09em;
+      color: var(--muted); margin-bottom: 10px;
+    }
+
+    .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .search-input-wrap { flex: 1; min-width: 240px; position: relative; }
+
+    .search-icon {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%); font-size: 16px; pointer-events: none;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 13px 14px 13px 44px;
+      font-size: 15px;
+      border: 2px solid var(--border);
+      border-radius: 8px; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      color: var(--text); background: #fafbfd; font-family: inherit;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--vli-blue);
+      box-shadow: 0 0 0 3px rgba(0,116,205,.13);
+      background: #fff;
+    }
+
+    input[type="text"]::placeholder { color: #aab5c5; }
+
+    .btn {
+      padding: 13px 24px; font-size: 15px; font-weight: 600;
+      border: none; border-radius: 8px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 7px;
+      transition: background .2s, transform .12s, box-shadow .2s;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--vli-orange);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(231,115,20,.32);
+    }
+
+    .btn-primary:hover {
+      background: var(--vli-orange-dk);
+      box-shadow: 0 5px 18px rgba(231,115,20,.38);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-ghost {
+      background: transparent; color: var(--muted); border: 2px solid var(--border);
+    }
+
+    .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+    #status {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin-top: 16px; font-size: .82rem; font-weight: 600;
+      padding: 6px 14px; border-radius: 20px;
+      border: 1px solid #c3e6cd; background: var(--ok-bg); color: var(--ok);
+    }
+
+    #status.loading { background: var(--vli-blue-lt); color: var(--vli-blue); border-color: #b3d7f0; }
+    #status.error   { background: #fff0ef; color: #c0392b; border-color: #f5c6c2; }
+
+    /* ── Stats row ── */
+    .stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+
+    .stat-chip {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 14px;
+      flex: 1; min-width: 155px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+
+    .stat-icon.orange { background: var(--vli-orange-lt); }
+    .stat-icon.blue   { background: var(--vli-blue-lt); }
+    .stat-icon.green  { background: var(--ok-bg); }
+
+    .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1; }
+    .stat-label { font-size: .72rem; color: var(--muted); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* ── Result section card ── */
+    .section-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .section-header {
+      background: linear-gradient(135deg, #00406e 0%, var(--vli-blue) 100%);
+      padding: 16px 24px;
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .section-header-title {
+      color: #fff; font-size: .95rem; font-weight: 700;
+      flex: 1; display: flex; align-items: center; gap: 10px;
+    }
+
+    .thermo-chip {
+      background: rgba(255,255,255,.18); color: #fff;
+      padding: 3px 11px; border-radius: 20px;
+      font-size: .85rem; font-weight: 700;
+      border: 1px solid rgba(255,255,255,.28);
+    }
+
+    .section-count {
+      background: var(--vli-orange);
+      color: #fff; padding: 4px 12px; border-radius: 12px;
+      font-size: .78rem; font-weight: 700; white-space: nowrap;
+    }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      padding: 13px 16px;
+      background: #00406e;
+      color: rgba(255,255,255,.80);
+      font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      text-align: left; white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f5faff; }
+
+    /* Highlight row for "Sem ronda Temp. baixa" — blue tint */
+    tbody tr.row-remodelado { background: #edf6ff; }
+    tbody tr.row-remodelado:hover { background: #dceefb; }
+
+    tbody td {
+      padding: 12px 16px; font-size: .9rem;
+      color: var(--text); vertical-align: middle;
+    }
+
+    /* ── Tags ── */
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 11px; border-radius: 20px;
+      font-size: .78rem; font-weight: 700; white-space: nowrap;
+    }
+
+    .tag-remodelado { background: var(--vli-blue-lt); color: var(--vli-blue);   border: 1px solid #a8d4f5; }
+    .tag-ok         { background: var(--ok-bg);        color: var(--ok);         border: 1px solid #c3e6cd; }
+    .tag-warn       { background: var(--vli-orange-lt); color: var(--vli-orange); border: 1px solid #f5cfa8; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 56px 24px; color: var(--muted); }
+    .empty-icon  { font-size: 3.2rem; margin-bottom: 14px; }
+    .empty-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .empty-desc  { font-size: .85rem; line-height: 1.5; }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      padding: 14px 24px;
+      background: #fafbfd;
+      border-top: 1px solid var(--border);
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 7px; font-size: .78rem; color: var(--muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .topbar { padding: 0 16px; flex-wrap: wrap; }
+      .topbar-logo { padding: 14px 16px 14px 12px; margin-right: 12px; }
+      .search-card { padding: 20px 16px; }
+    }
+
+  </style>
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+
+<body>
+
+<!-- ══ TOP BAR ══════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="topbar-logo-mark"> <img src="images.jpg" alt="logo" style="height: 80px;;width: auto;"> </div>
+    <div class="topbar-brand">
+      <div class="topbar-brand-name"></div>
+      <div class="topbar-brand-sub"></div>
+    </div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-title-wrap">
+    <div class="topbar-title">Consulta de Termômetros</div>
+    <div class="topbar-subtitle">Verificação de temperatura por corredor e trecho</div>
+  </div>
+</div>
+
+<!-- ══ PAGE ═════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- Search -->
+  <div class="search-card">
+    <div class="search-label">Identificador do Termômetro</div>
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔎</span>
+        <input type="text" id="termometro"
+               placeholder="Ex: EAX, EDV, ZMM…"
+               list="listaTermometros"
+               autocomplete="off" spellcheck="false" />
+        <datalist id="listaTermometros"></datalist>
+      </div>
+      <button class="btn btn-primary" onclick="buscar()">🔍 Pesquisar</button>
+      <button class="btn btn-ghost"   onclick="limpar()">✕ Limpar</button>
+    </div>
+    <div id="status" class="loading">⏳ Carregando dados…</div>
+  </div>
+
+  <!-- Stats (hidden until search) -->
+  <div class="stats-row" id="statsRow" style="display:none">
+    <div class="stat-chip">
+      <div class="stat-icon orange">🌡️</div>
+      <div><div class="stat-value" id="statTotal">0</div>
+           <div class="stat-label">Trechos encontrados</div></div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-icon blue">🔵</div>
+      <div><div class="stat-value" id="statRemodelado">0</div>
+           <div class="stat-label">Trechos remodelados</div></div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-icon green">🚆</div>
+      <div><div class="stat-value" id="statOk">0</div>
+           <div class="stat-label">Necessário ronda</div></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultado"></div>
+
+</div>
+
+<script>
+  let dados = [];
+
+  async function carregarDados() {
+    const el = document.getElementById("status");
+    try {
+      const resp = await fetch("dados.json");
+      dados = await resp.json();
+      el.className = "";
+      el.innerHTML = "Dados de acordo com o PRO-000011";
+      preencherLista();
+    } catch {
+      el.className = "error";
+      el.innerHTML = "❌ Erro ao carregar dados.json — verifique o arquivo.";
+    }
+  }
+
+  function preencherLista() {
+    const lista = document.getElementById("listaTermometros");
+    [...new Set(dados.map(x => x.termometro))].sort().forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      lista.appendChild(opt);
+    });
+  }
+
+  /* Trecho remodelado = sem necessidade de inspeção */
+  function isRemodelado(item) {
+    const r = (item.ronda || "").toLowerCase();
+    return r.includes("sem ronda") || r.includes("temp. baixa") ||
+           r.includes("temp baixa") || r.includes("baixa") || r === "";
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function rondaTag(item) {
+    if (isRemodelado(item))
+      return '<span class="tag tag-remodelado">🔵 Trecho Remodelado</span>';
+    const r = (item.ronda || "").toLowerCase();
+    if (r.includes("parcial") || r.includes("pendente"))
+      return '<span class="tag tag-warn">🕐 ' + esc(item.ronda) + "</span>";
+    return '<span class="tag tag-ok">🚆 ' + esc(item.ronda) + "</span>";
+  }
+
+  function buscar() {
+    const termo   = document.getElementById("termometro").value.trim().toUpperCase();
+    const out     = document.getElementById("resultado");
+    const statRow = document.getElementById("statsRow");
+
+    if (!termo) { out.innerHTML = ""; statRow.style.display = "none"; return; }
+
+    const resultado = dados.filter(x => x.termometro === termo);
+
+    if (resultado.length === 0) {
+      statRow.style.display = "none";
+      out.innerHTML =
+        '<div class="section-card"><div class="empty-state">' +
+        '<div class="empty-icon">🔍</div>' +
+        '<div class="empty-title">Nenhum resultado encontrado</div>' +
+        '<div class="empty-desc">O termômetro <strong>' + esc(termo) +
+        "</strong> não foi localizado na base de dados.<br>Verifique a sigla e tente novamente.</div>" +
+        "</div></div>";
+      return;
+    }
+
+    const remodelados = resultado.filter(isRemodelado);
+    const comRonda    = resultado.filter(x => !isRemodelado(x));
+
+    document.getElementById("statTotal").textContent      = resultado.length;
+    document.getElementById("statRemodelado").textContent = remodelados.length;
+    document.getElementById("statOk").textContent         = comRonda.length;
+    statRow.style.display = "flex";
+
+    const n = resultado.length + " trecho" + (resultado.length !== 1 ? "s" : "");
+
+    /* Single unified table */
+    const trs = resultado.map(function(item) {
+      const cls = isRemodelado(item) ? ' class="row-remodelado"' : "";
+      return "<tr" + cls + "><td><strong>" + esc(item.corredor) + "</strong></td><td>" +
+             esc(item.trecho) + "</td><td>" + rondaTag(item) + "</td></tr>";
+    }).join("");
+
+    const html =
+      '<div class="section-card">' +
+      '<div class="section-header">' +
+      '<span style="font-size:18px">🌡️</span>' +
+      '<div class="section-header-title">Termômetro ' +
+      '<span class="thermo-chip"> ' + esc(termo) + "</span></div>" +
+      '<span class="section-count">' + n + "</span>" +
+      "</div>" +
+      '<div class="table-wrap"><table>' +
+      "<thead><tr><th>Corredor</th><th>Trecho (SB)</th><th>Ronda / Situação</th></tr></thead>" +
+      "<tbody>" + trs + "</tbody>" +
+      "</table></div>" +
+      '<div class="legend">' +
+      '<div class="legend-item"><span class="tag tag-remodelado" style="padding:3px 9px;font-size:.72rem">🔵 Trecho Remodelado</span> Sem inspeção necessária </div>' +
+      '<div class="legend-item"><span class="tag tag-ok" style="padding:3px 9px;font-size:.72rem">🚆 Necessário ronda</span> Ronda ao atingir temperatura indicada</div>' +
+      "</div>" +
+      "</div>";
+
+    out.innerHTML = html;
+  }
+
+  function limpar() {
+    document.getElementById("termometro").value = "";
+    document.getElementById("resultado").innerHTML = "";
+    document.getElementById("statsRow").style.display = "none";
+    document.getElementById("termometro").focus();
+  }
+
+  document.getElementById("termometro")
+    .addEventListener("keypress", function(e) { if (e.key === "Enter") buscar(); });
+
+  carregarDados();
+</script>
+</body>
+</html>
