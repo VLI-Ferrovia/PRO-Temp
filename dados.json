@@ -1225,37 +1225,37 @@
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "E12",
-    "trecho": "E12D",
+    "termometro": "EI2",
+    "trecho": "EI2D",
     "ronda": "Temperatura ≤ 6°C"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "E12",
+    "termometro": "EI2",
     "trecho": "EI2EPH",
     "ronda": "Temperatura ≤ 6°C"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "E12",
-    "trecho": "E12P",
+    "termometro": "EI2",
+    "trecho": "EI2P",
     "ronda": "Temperatura ≤ 6°C"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "E12",
+    "termometro": "EI2",
     "trecho": "EIYD",
     "ronda": "Sem ronda Temp. baixa"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "E12",
-    "trecho": "EIYE12",
+    "termometro": "EI2",
+    "trecho": "EIYEI2",
     "ronda": "Temperatura ≤ 6°C"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "E12",
+    "termometro": "EI2",
     "trecho": "EIYP",
     "ronda": "Temperatura ≤ 6°C"
   },
