@@ -99,6 +99,94 @@
     .topbar-title    { color: #fff; font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; }
     .topbar-subtitle { color: rgba(255,255,255,.55); font-size: .76rem; margin-top: 2px; }
 
+    .topbar-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+    }
+
+    .topbar-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.16);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.24);
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 700;
+      transition: background .2s, transform .12s;
+    }
+
+    .topbar-link:hover {
+      background: rgba(255,255,255,.24);
+      transform: translateY(-1px);
+    }
+
+    .procedimento-wrapper {
+      position: relative;
+    }
+
+    .procedimento-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .procedimento-card {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      width: min(420px, 100%);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .procedimento-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .procedimento-option,
+    .procedimento-cancel {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: transform .12s, background .2s;
+      font-family: inherit;
+    }
+
+    .procedimento-option {
+      background: var(--vli-blue-lt);
+      color: var(--vli-blue-dk);
+    }
+
+    .procedimento-option:hover,
+    .procedimento-cancel:hover {
+      transform: translateY(-1px);
+    }
+
+    .procedimento-cancel {
+      background: #f2f5f9;
+      color: var(--muted);
+      text-align: center;
+    }
+
     /* ── Page ── */
     .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 0; }
 
@@ -323,6 +411,19 @@
     <div class="topbar-title">Consulta de Termômetros</div>
     <div class="topbar-subtitle">Verificação de temperatura por corredor e trecho</div>
   </div>
+  <div class="topbar-actions">
+    <div class="procedimento-wrapper">
+      <button class="topbar-link" type="button" onclick="abrirSeletorProcedimento()">Procedimento</button>
+      <div id="procedimentoModal" class="procedimento-modal" role="dialog" aria-modal="true" aria-label="Escolha o procedimento">
+        <div class="procedimento-card">
+          <div class="procedimento-title">Escolha o documento</div>
+          <button class="procedimento-option" type="button" onclick="abrirProcedimento('CIRCULAR 09-2024 - PRO-000011 - Tratar Ocorrências de Variações de Temperaturas na Via (1).pdf')">📄 Circular 09-2024</button>
+          <button class="procedimento-option" type="button" onclick="abrirProcedimento('PRO temperatura_Novo_2024.pdf')">📄 PRO temperatura_Novo_2024</button>
+          <button class="procedimento-cancel" type="button" onclick="fecharSeletorProcedimento()">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══ PAGE ═════════════════════════════════════════════ -->
@@ -417,6 +518,28 @@
     return '<span class="tag tag-ok">🚆 ' + esc(item.ronda) + "</span>";
   }
 
+  function normalizarTexto(valor) {
+    return String(valor || "").trim().toUpperCase();
+  }
+
+  function encontrarResultados(termo) {
+    const busca = normalizarTexto(termo);
+
+    if (!busca) return [];
+
+    const porTermometroExato = dados.filter(x => normalizarTexto(x.termometro) === busca);
+    if (porTermometroExato.length > 0) return porTermometroExato;
+
+    const porTrecho = dados.filter(x => normalizarTexto(x.trecho).includes(busca));
+    if (porTrecho.length > 0) {
+      const termometrosRelacionados = [...new Set(porTrecho.map(x => normalizarTexto(x.termometro)))];
+      return dados.filter(x => termometrosRelacionados.includes(normalizarTexto(x.termometro)));
+    }
+
+    const porTermometroParcial = dados.filter(x => normalizarTexto(x.termometro).includes(busca));
+    return porTermometroParcial;
+  }
+
   function buscar() {
     const termo   = document.getElementById("termometro").value.trim().toUpperCase();
     const out     = document.getElementById("resultado");
@@ -424,7 +547,8 @@
 
     if (!termo) { out.innerHTML = ""; statRow.style.display = "none"; return; }
 
-    const resultado = dados.filter(x => x.termometro === termo);
+    const resultado = encontrarResultados(termo);
+    const termoExibicao = resultado.length > 0 ? (resultado[0].termometro || termo) : termo;
 
     if (resultado.length === 0) {
       statRow.style.display = "none";
@@ -432,7 +556,7 @@
         '<div class="section-card"><div class="empty-state">' +
         '<div class="empty-icon">🔍</div>' +
         '<div class="empty-title">Nenhum resultado encontrado</div>' +
-        '<div class="empty-desc">O termômetro <strong>' + esc(termo) +
+        '<div class="empty-desc">O termo <strong>' + esc(termo) +
         "</strong> não foi localizado na base de dados.<br>Verifique a sigla e tente novamente.</div>" +
         "</div></div>";
       return;
@@ -460,7 +584,7 @@
       '<div class="section-header">' +
       '<span style="font-size:18px">🌡️</span>' +
       '<div class="section-header-title">Termômetro ' +
-      '<span class="thermo-chip"> ' + esc(termo) + "</span></div>" +
+      '<span class="thermo-chip"> ' + esc(termoExibicao) + "</span></div>" +
       '<span class="section-count">' + n + "</span>" +
       "</div>" +
       '<div class="table-wrap"><table>' +
@@ -482,6 +606,27 @@
     document.getElementById("statsRow").style.display = "none";
     document.getElementById("termometro").focus();
   }
+
+  function abrirSeletorProcedimento() {
+    document.getElementById("procedimentoModal").style.display = "flex";
+  }
+
+  function fecharSeletorProcedimento() {
+    document.getElementById("procedimentoModal").style.display = "none";
+  }
+
+  function abrirProcedimento(arquivo) {
+    window.open(arquivo, "_blank", "noopener,noreferrer");
+    fecharSeletorProcedimento();
+  }
+
+  document.getElementById("procedimentoModal").addEventListener("click", function(e) {
+    if (e.target.id === "procedimentoModal") fecharSeletorProcedimento();
+  });
+
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") fecharSeletorProcedimento();
+  });
 
   document.getElementById("termometro")
     .addEventListener("keypress", function(e) { if (e.key === "Enter") buscar(); });
