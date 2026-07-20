@@ -163,25 +163,25 @@
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "EIR",
+    "termometro": "EJR",
     "trecho": "ECTEJR",
     "ronda": "Temperatura ≤ 6°C"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "EIR",
-    "trecho": "EIRD",
+    "termometro": "EJR",
+    "trecho": "EJRD",
     "ronda": "Sem ronda Temp. baixa"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "EIR",
-    "trecho": "EIREGB",
+    "termometro": "EJR",
+    "trecho": "EJREGB",
     "ronda": "Temperatura ≤ 6°C"
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "EIR",
+    "termometro": "EJR",
     "trecho": "EJRP",
     "ronda": "Sem ronda Temp. baixa"
   },
@@ -577,7 +577,7 @@
   },
   {
     "corredor": "Centro Leste",
-    "termometro": "EEL",
+    "termometro": "EBH",
     "trecho": "ESTEBH2",
     "ronda": "Temperatura ≤ 6°C"
   },
@@ -1497,6 +1497,12 @@
     "corredor": "Centro Leste",
     "termometro": "EPC",
     "trecho": "EPCD",
+    "ronda": "Temperatura ≤ 6°C"
+  },
+  {
+    "corredor": "Centro Leste",
+    "termometro": "EPC",
+    "trecho": "EPCEBA",
     "ronda": "Temperatura ≤ 6°C"
   },
   {
@@ -2431,7 +2437,7 @@
   },
   {
     "corredor": "Centro Sudeste",
-    "termometro": "EIA",
+    "termometro": "EJA",
     "trecho": "EGAP",
     "ronda": "Temperatura ≤ 9°C"
   },
@@ -3475,7 +3481,7 @@
   },
   {
     "corredor": "Centro Sudeste",
-    "termometro": "ZXI",
+    "termometro": "ZXJ",
     "trecho": "ZMN4",
     "ronda": "Temperatura ≤ 6°C"
   },
@@ -5054,19 +5060,19 @@
   {
     "corredor": "Minas Bahia",
     "termometro": "DMF",
-    "trecho": "DDA NL1",
+    "trecho": "DDA_NL1",
     "ronda": "Temperatura ≤ 9°C"
   },
   {
     "corredor": "Minas Bahia",
     "termometro": "DMF",
-    "trecho": "DDA NL2",
+    "trecho": "DDA_NL2",
     "ronda": "Temperatura ≤ 9°C"
   },
   {
     "corredor": "Minas Bahia",
     "termometro": "DMF",
-    "trecho": "DDA NL3",
+    "trecho": "DDA_NL3",
     "ronda": "Temperatura ≤ 9°C"
   },
   {
@@ -5270,25 +5276,25 @@
   {
     "corredor": "Minas Bahia",
     "termometro": "DSF",
-    "trecho": "DMJ NL1",
+    "trecho": "DMJ_NL1",
     "ronda": "Temperatura ≤ 9°C"
   },
   {
     "corredor": "Minas Bahia",
     "termometro": "DSF",
-    "trecho": "DMJ NL2",
+    "trecho": "DMJ_NL2",
     "ronda": "Temperatura ≤ 9°C"
   },
   {
     "corredor": "Minas Bahia",
     "termometro": "DSF",
-    "trecho": "DMJ NL3",
+    "trecho": "DMJ_NL3",
     "ronda": "Temperatura ≤ 9°C"
   },
   {
     "corredor": "Minas Bahia",
     "termometro": "DSF",
-    "trecho": "DMJ NL4",
+    "trecho": "DMJ_NL4",
     "ronda": "Temperatura ≤ 9°C"
   },
   {
