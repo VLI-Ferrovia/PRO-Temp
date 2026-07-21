@@ -5451,6 +5451,7 @@
     "corredor": "Minas Rio",
     "termometro": "EAN",
     "trecho": "EANESV",
+    "dtq": true,
     "ronda": "Temperatura ≤ 9°C"
   },
   {
@@ -5517,6 +5518,7 @@
     "corredor": "Minas Rio",
     "termometro": "EEP",
     "trecho": "EKWEEP",
+    "dtq": true,
     "ronda": "Temperatura ≤ 9°C"
   },
   {
@@ -5571,6 +5573,7 @@
     "corredor": "Minas Rio",
     "termometro": "ELN",
     "trecho": "ELN3",
+    "dtq": true,
     "ronda": "Temperatura ≤ 9°C"
   },
   {
