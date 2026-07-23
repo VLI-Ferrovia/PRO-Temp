@@ -425,9 +425,14 @@
       <div id="procedimentoModal" class="procedimento-modal" role="dialog" aria-modal="true" aria-label="Escolha o procedimento">
         <div class="procedimento-card">
           <div class="procedimento-title">Escolha o documento</div>
-          <button class="procedimento-option" type="button" onclick="abrirProcedimento('CIRCULAR 09-2024 - PRO-000011 - Tratar Ocorrências de Variações de Temperaturas na Via (1).pdf')">📄 Circular 09-2024</button>
-          <button class="procedimento-option" type="button" onclick="abrirProcedimento('PRO temperatura_Novo_2024.pdf')">📄 PRO temperatura_Novo_2024</button>
-          <button class="procedimento-cancel" type="button" onclick="fecharSeletorProcedimento()">Fechar</button>
+
+<button class="procedimento-option" type="button"
+        onclick="abrirProcedimento('PRO-000011-V18.pdf')">📄 PRO-000011-V18.pdf </button>
+
+<button class="procedimento-cancel" type="button"
+        onclick="fecharSeletorProcedimento()">
+    Fechar
+</button>
         </div>
       </div>
     </div>
@@ -481,8 +486,7 @@
 
 <script>
   let dados = [];
-  // Lista dos trechos que possuem sinalização DTQ (preencha com até ~15 códigos)
-  // Exemplo: ['EAN-ESV', 'OUTRO'] ou deixe vazia e use a propriedade `dtq` em cada objeto
+ 
   const dtqList = [];
 
   async function carregarDados() {
@@ -491,7 +495,7 @@
       const resp = await fetch("dados.json");
       dados = await resp.json();
       el.className = "";
-      el.innerHTML = "Dados de acordo com o PRO-000011";
+      el.innerHTML = "Dados de acordo com o PRO-000011 V18";
       preencherLista();
     } catch {
       el.className = "error";
