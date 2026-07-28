@@ -392,6 +392,49 @@
     /* Prevent legend items from breaking into multiple lines */
     .legend-item { flex: 0 0 auto; white-space: nowrap; }
 
+
+    /* ── Multiple thermometers / relationships ── */
+    .multi-thermo-alert {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 17px 20px;
+      margin-bottom: 20px;
+      border: 1px solid #f2c98e;
+      border-left: 5px solid var(--vli-orange);
+      border-radius: var(--radius);
+      background: #fff8ed;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .multi-thermo-alert-icon {
+      font-size: 1.35rem;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .multi-thermo-alert-content { min-width: 0; }
+
+    .multi-thermo-alert-title {
+      color: #8b4a08;
+      font-size: .95rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .multi-thermo-alert-text {
+      color: #6b4a27;
+      font-size: .84rem;
+      line-height: 1.55;
+    }
+
+    .section-header-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .thermo-section + .thermo-section { margin-top: 20px; }
+
     /* ── Responsive ── */
     @media (max-width: 640px) {
       .topbar { padding: 0 16px; flex-wrap: wrap; }
@@ -486,30 +529,61 @@
 
 <script>
   let dados = [];
- 
+
   const dtqList = [];
+
+  /*
+   * Relações hierárquicas conhecidas entre termômetros.
+   * Formato: TERMÔMETRO_VINCULADO: TERMÔMETRO_PRINCIPAL
+   *
+   * A relação também pode ser informada diretamente no dados.json usando
+   * uma das propriedades: termometroPrincipal, termometro_principal,
+   * vinculadoA ou vinculado_a. O valor presente no JSON tem prioridade.
+   */
+  const vinculosTermometros = {
+    /* Exemplo para correção manual, caso necessário:
+       CODIGO_VINCULADO: "CODIGO_PRINCIPAL" */
+  };
 
   async function carregarDados() {
     const el = document.getElementById("status");
-    try {
-      const resp = await fetch("dados.json");
-      dados = await resp.json();
-      el.className = "";
-      el.innerHTML = "Dados de acordo com o PRO-000011 V18";
-      preencherLista();
-    } catch {
-      el.className = "error";
-      el.innerHTML = "❌ Erro ao carregar dados.json — verifique o arquivo.";
+    const arquivos = ["dados.json", "dados(1).json"];
+    let ultimoErro;
+
+    for (const arquivo of arquivos) {
+      try {
+        const resp = await fetch(arquivo);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+
+        const conteudo = await resp.json();
+        if (!Array.isArray(conteudo)) throw new Error("Formato de dados inválido");
+
+        dados = conteudo;
+        el.className = "";
+        el.innerHTML = "Dados de acordo com o PRO-000011 V18";
+        preencherLista();
+        return;
+      } catch (erro) {
+        ultimoErro = erro;
+      }
     }
+
+    console.error(ultimoErro);
+    el.className = "error";
+    el.innerHTML = "❌ Erro ao carregar o arquivo de dados — verifique dados.json.";
   }
 
   function preencherLista() {
     const lista = document.getElementById("listaTermometros");
-    [...new Set(dados.map(x => x.termometro))].sort().forEach(t => {
-      const opt = document.createElement("option");
-      opt.value = t;
-      lista.appendChild(opt);
-    });
+    lista.innerHTML = "";
+
+    [...new Set(dados.map(x => normalizarTexto(x.termometro)).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "pt-BR"))
+      .forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        lista.appendChild(opt);
+      });
   }
 
   /* Trecho remodelado = sem necessidade de inspeção */
@@ -520,28 +594,26 @@
   }
 
   function esc(s) {
-    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
-                    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                            .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+                            .replace(/'/g,"&#039;");
   }
 
   function rondaTag(item) {
     if (isRemodelado(item))
       return '<span class="tag tag-remodelado">🔵 Trecho Remodelado</span>';
+
     const r = (item.ronda || "").toLowerCase();
     if (r.includes("parcial") || r.includes("pendente"))
       return '<span class="tag tag-warn">🕐 ' + esc(item.ronda) + "</span>";
+
     return '<span class="tag tag-ok">🚆 ' + esc(item.ronda) + "</span>";
   }
 
   function isDTQ(item) {
-    if (item && (item.dtq === true || item.dtq === 'true')) return true;
+    if (item && (item.dtq === true || item.dtq === "true")) return true;
     const t = normalizarTexto(item && item.trecho);
-    return dtqList.map(x => String(x).trim().toUpperCase()).includes(t);
-  }
-
-  function dtqTag(item) {
-    if (!isDTQ(item)) return "";
-    return '<span class="dtq-badge" title="DTQ">DTQ</span>';
+    return dtqList.map(x => normalizarTexto(x)).includes(t);
   }
 
   function dtqInlineTag(item) {
@@ -553,83 +625,329 @@
     return String(valor || "").trim().toUpperCase();
   }
 
-  function encontrarResultados(termo) {
-    const busca = normalizarTexto(termo);
+  function obterTermometroPrincipal(itemOuCodigo) {
+    const item = typeof itemOuCodigo === "object" && itemOuCodigo !== null
+      ? itemOuCodigo
+      : null;
 
-    if (!busca) return [];
+    const codigo = normalizarTexto(item ? item.termometro : itemOuCodigo);
+    const principalInformado = item && (
+      item.termometroPrincipal ||
+      item.termometro_principal ||
+      item.vinculadoA ||
+      item.vinculado_a
+    );
 
-    const porTermometroExato = dados.filter(x => normalizarTexto(x.termometro) === busca);
-    if (porTermometroExato.length > 0) return porTermometroExato;
+    return normalizarTexto(principalInformado || vinculosTermometros[codigo] || "");
+  }
 
-    const porTrecho = dados.filter(x => normalizarTexto(x.trecho).includes(busca));
-    if (porTrecho.length > 0) {
-      const termometrosRelacionados = [...new Set(porTrecho.map(x => normalizarTexto(x.termometro)))];
-      return dados.filter(x => termometrosRelacionados.includes(normalizarTexto(x.termometro)));
+  function obterPosicoes(texto, codigo) {
+    const posicoes = [];
+    let inicio = 0;
+
+    while (codigo && inicio <= texto.length - codigo.length) {
+      const indice = texto.indexOf(codigo, inicio);
+      if (indice === -1) break;
+      posicoes.push(indice);
+      inicio = indice + 1;
     }
 
-    const porTermometroParcial = dados.filter(x => normalizarTexto(x.termometro).includes(busca));
-    return porTermometroParcial;
+    return posicoes;
+  }
+
+  function codigosAparecemSemSobreposicao(texto, codigoA, codigoB) {
+    const valor = normalizarTexto(texto);
+    const a = normalizarTexto(codigoA);
+    const b = normalizarTexto(codigoB);
+
+    if (!valor || !a || !b || a === b) return false;
+
+    const posicoesA = obterPosicoes(valor, a);
+    const posicoesB = obterPosicoes(valor, b);
+
+    return posicoesA.some(posA =>
+      posicoesB.some(posB =>
+        posA + a.length <= posB || posB + b.length <= posA
+      )
+    );
+  }
+
+  function construirMapaVinculos() {
+    const mapa = new Map();
+
+    /* 1. Vínculos configurados manualmente. */
+    Object.entries(vinculosTermometros).forEach(([vinculado, principal]) => {
+      const filho = normalizarTexto(vinculado);
+      const pai = normalizarTexto(principal);
+      if (filho && pai && filho !== pai) mapa.set(filho, pai);
+    });
+
+    /* 2. Vínculos declarados explicitamente no próprio JSON. */
+    dados.forEach(item => {
+      const filho = normalizarTexto(item.termometro);
+      const pai = obterTermometroPrincipal(item);
+      if (filho && pai && filho !== pai) mapa.set(filho, pai);
+    });
+
+    /*
+     * 3. Descoberta automática pela base.
+     *
+     * Quando uma SB registrada no termômetro principal contém o código de
+     * outro termômetro e o código do próprio principal, sem sobreposição,
+     * o outro termômetro é considerado vinculado ao principal.
+     *
+     * Exemplo: a SB ZAQZBA está cadastrada em ZBA. Logo, ZAQ -> ZBA.
+     * A direção inversa não é criada: pesquisar ZBA continua retornando ZBA.
+     */
+    const codigos = [...new Set(
+      dados.map(item => normalizarTexto(item.termometro)).filter(Boolean)
+    )];
+
+    dados.forEach(item => {
+      const principal = normalizarTexto(item.termometro);
+      const trecho = normalizarTexto(item.trecho);
+
+      if (!principal || !trecho) return;
+
+      codigos.forEach(vinculado => {
+        if (vinculado === principal || mapa.has(vinculado)) return;
+
+        if (codigosAparecemSemSobreposicao(trecho, vinculado, principal)) {
+          mapa.set(vinculado, principal);
+        }
+      });
+    });
+
+    return mapa;
+  }
+
+  function expandirTermometrosRelacionados(codigosIniciais, mapa = construirMapaVinculos()) {
+    const relacionados = new Set(
+      [...codigosIniciais].map(normalizarTexto).filter(Boolean)
+    );
+    const fila = [...relacionados];
+
+    while (fila.length > 0) {
+      const atual = fila.shift();
+
+      /*
+       * O vínculo é direcional: somente o termômetro vinculado inclui
+       * o seu principal. Ex.: pesquisar ZAQ inclui ZAQ + ZBA.
+       * Pesquisar ZBA não inclui ZAQ, pois ZBA não pertence a ZAQ.
+       */
+      const principal = mapa.get(atual);
+      if (principal && !relacionados.has(principal)) {
+        relacionados.add(principal);
+        fila.push(principal);
+      }
+    }
+
+    return relacionados;
+  }
+
+  function obterDadosDosTermometros(codigos, mapa = construirMapaVinculos()) {
+    const relacionados = expandirTermometrosRelacionados(codigos, mapa);
+    return dados.filter(item =>
+      relacionados.has(normalizarTexto(item.termometro))
+    );
+  }
+
+  function encontrarResultados(termo) {
+    const busca = normalizarTexto(termo);
+    if (!busca) return [];
+
+    const mapaVinculos = construirMapaVinculos();
+    const porTermometroExato = dados.filter(
+      item => normalizarTexto(item.termometro) === busca
+    );
+
+    /*
+     * A busca exata tem prioridade para impedir a expansão inversa.
+     * Ex.: ZAQ inclui ZAQ + ZBA, mas ZBA continua retornando somente ZBA.
+     */
+    if (porTermometroExato.length > 0) {
+      return obterDadosDosTermometros([busca], mapaVinculos);
+    }
+
+    const porTrecho = dados.filter(
+      item => normalizarTexto(item.trecho).includes(busca)
+    );
+
+    if (porTrecho.length > 0) {
+      const encontrados = new Set();
+
+      porTrecho.forEach(item => {
+        const principalDoRegistro = normalizarTexto(item.termometro);
+        const trecho = normalizarTexto(item.trecho);
+
+        if (principalDoRegistro) encontrados.add(principalDoRegistro);
+
+        /*
+         * Se a própria SB pesquisada for o elo entre dois termômetros,
+         * inclui também o termômetro vinculado mencionado nessa SB.
+         * Ex.: ZAQZBA, cadastrada em ZBA, envolve ZAQ e ZBA.
+         */
+        mapaVinculos.forEach((principal, vinculado) => {
+          if (
+            principal === principalDoRegistro &&
+            codigosAparecemSemSobreposicao(trecho, vinculado, principal)
+          ) {
+            encontrados.add(vinculado);
+          }
+        });
+      });
+
+      return obterDadosDosTermometros(encontrados, mapaVinculos);
+    }
+
+    const porTermometroParcial = dados.filter(
+      item => normalizarTexto(item.termometro).includes(busca)
+    );
+
+    if (porTermometroParcial.length > 0) {
+      const encontrados = porTermometroParcial
+        .map(item => normalizarTexto(item.termometro))
+        .filter(Boolean);
+
+      return obterDadosDosTermometros(encontrados, mapaVinculos);
+    }
+
+    return [];
+  }
+
+  function agruparPorTermometro(resultados) {
+    const grupos = new Map();
+    const mapaVinculos = construirMapaVinculos();
+
+    resultados.forEach(item => {
+      const codigo = normalizarTexto(item.termometro) || "NÃO INFORMADO";
+
+      if (!grupos.has(codigo)) {
+        grupos.set(codigo, {
+          codigo,
+          principal: mapaVinculos.get(codigo) || obterTermometroPrincipal(item),
+          itens: []
+        });
+      }
+
+      const grupo = grupos.get(codigo);
+      grupo.itens.push(item);
+
+      /* Caso o primeiro registro não tenha metadado, aproveita outro do grupo. */
+      if (!grupo.principal) {
+        grupo.principal = mapaVinculos.get(codigo) || obterTermometroPrincipal(item);
+      }
+    });
+
+    return [...grupos.values()].sort((a, b) => {
+      const aVinculado = Boolean(a.principal);
+      const bVinculado = Boolean(b.principal);
+
+      if (aVinculado !== bVinculado) return aVinculado ? 1 : -1;
+      if (a.principal !== b.principal) {
+        return a.principal.localeCompare(b.principal, "pt-BR");
+      }
+      return a.codigo.localeCompare(b.codigo, "pt-BR");
+    });
+  }
+
+  function renderizarAlertaMultiplos(termo, grupos) {
+    if (grupos.length <= 1) return "";
+
+    /*
+     * O vínculo continua sendo utilizado internamente para expandir,
+     * ordenar e separar os resultados, mas não é exibido na interface.
+     */
+    const nomes = grupos.map(
+      grupo => "<strong>" + esc(grupo.codigo) + "</strong>"
+    );
+
+    return (
+      '<div class="multi-thermo-alert" role="alert">' +
+        
+          "</strong>Dados em " + grupos.length + " termômetros: " +
+          nomes.join(", ") + ". Os resultados foram separados abaixo.</div>" +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderizarSecaoTermometro(grupo) {
+    const n = grupo.itens.length + " trecho" + (grupo.itens.length !== 1 ? "s" : "");
+
+    const trs = grupo.itens.map(item => {
+      const cls = isRemodelado(item) ? ' class="row-remodelado"' : "";
+
+      return (
+        "<tr" + cls + ">" +
+          "<td><strong>" + esc(item.corredor) + "</strong></td>" +
+          "<td>" + esc(item.trecho) + dtqInlineTag(item) + "</td>" +
+          "<td>" + rondaTag(item) + "</td>" +
+        "</tr>"
+      );
+    }).join("");
+
+    return (
+      '<div class="section-card thermo-section" data-termometro="' + esc(grupo.codigo) + '">' +
+        '<div class="section-header">' +
+          '<span style="font-size:18px">🌡️</span>' +
+          '<div class="section-header-title-wrap">' +
+            '<div class="section-header-title">Termômetro ' +
+              '<span class="thermo-chip">' + esc(grupo.codigo) + "</span>" +
+            "</div>" +
+          "</div>" +
+          '<span class="section-count">' + n + "</span>" +
+        "</div>" +
+        '<div class="table-wrap"><table>' +
+          "<thead><tr><th>Corredor</th><th>Trecho (SB)</th><th>Ronda / Situação</th></tr></thead>" +
+          "<tbody>" + trs + "</tbody>" +
+        "</table></div>" +
+        '<div class="legend">' +
+          '<div class="legend-item"><span class="tag tag-remodelado" style="padding:3px 9px;font-size:.72rem">🔵 Trecho Remodelado</span> Sem inspeção necessária</div>' +
+          '<div class="legend-item"><span class="tag tag-ok" style="padding:3px 9px;font-size:.72rem">🚆 Necessário ronda</span> Ronda ao atingir temperatura indicada</div>' +
+          '<div class="legend-item"><span class="dtq-badge" style="width:26px;height:26px;font-size:.72rem;display:inline-flex;align-items:center;justify-content:center">DTQ</span> Verificar comunicação do equipamento</div>' +
+        "</div>" +
+      "</div>"
+    );
   }
 
   function buscar() {
-    const termo   = document.getElementById("termometro").value.trim().toUpperCase();
-    const out     = document.getElementById("resultado");
+    const termo = normalizarTexto(document.getElementById("termometro").value);
+    const out = document.getElementById("resultado");
     const statRow = document.getElementById("statsRow");
 
-    if (!termo) { out.innerHTML = ""; statRow.style.display = "none"; return; }
+    if (!termo) {
+      out.innerHTML = "";
+      statRow.style.display = "none";
+      return;
+    }
 
     const resultado = encontrarResultados(termo);
-    const termoExibicao = resultado.length > 0 ? (resultado[0].termometro || termo) : termo;
 
     if (resultado.length === 0) {
       statRow.style.display = "none";
       out.innerHTML =
         '<div class="section-card"><div class="empty-state">' +
-        '<div class="empty-icon">🔍</div>' +
-        '<div class="empty-title">Nenhum resultado encontrado</div>' +
-        '<div class="empty-desc">O termo <strong>' + esc(termo) +
-        "</strong> não foi localizado na base de dados.<br>Verifique a sigla e tente novamente.</div>" +
+          '<div class="empty-icon">🔍</div>' +
+          '<div class="empty-title">Nenhum resultado encontrado</div>' +
+          '<div class="empty-desc">O termo <strong>' + esc(termo) +
+          "</strong> não foi localizado na base de dados.<br>Verifique a sigla e tente novamente.</div>" +
         "</div></div>";
       return;
     }
 
+    const grupos = agruparPorTermometro(resultado);
     const remodelados = resultado.filter(isRemodelado);
-    const comRonda    = resultado.filter(x => !isRemodelado(x));
+    const comRonda = resultado.filter(x => !isRemodelado(x));
 
-    document.getElementById("statTotal").textContent      = resultado.length;
+    document.getElementById("statTotal").textContent = resultado.length;
     document.getElementById("statRemodelado").textContent = remodelados.length;
-    document.getElementById("statOk").textContent         = comRonda.length;
+    document.getElementById("statOk").textContent = comRonda.length;
     statRow.style.display = "flex";
 
-    const n = resultado.length + " trecho" + (resultado.length !== 1 ? "s" : "");
-
-    /* Single unified table */
-    const trs = resultado.map(function(item) {
-      const cls = isRemodelado(item) ? ' class="row-remodelado"' : "";
-      return "<tr" + cls + "><td><strong>" + esc(item.corredor) + "</strong></td><td>" +
-             esc(item.trecho) + dtqInlineTag(item) + "</td><td>" + rondaTag(item) + "</td></tr>";
-    }).join("");
-
-    const html =
-      '<div class="section-card">' +
-      '<div class="section-header">' +
-      '<span style="font-size:18px">🌡️</span>' +
-      '<div class="section-header-title">Termômetro ' +
-      '<span class="thermo-chip"> ' + esc(termoExibicao) + "</span></div>" +
-      '<span class="section-count">' + n + "</span>" +
-      "</div>" +
-      '<div class="table-wrap"><table>' +
-      "<thead><tr><th>Corredor</th><th>Trecho (SB)</th><th>Ronda / Situação</th></tr></thead>" +
-      "<tbody>" + trs + "</tbody>" +
-      "</table></div>" +
-      '<div class="legend">' +
-      '<div class="legend-item"><span class="tag tag-remodelado" style="padding:3px 9px;font-size:.72rem">🔵 Trecho Remodelado</span> Sem inspeção necessária </div>' +
-      '<div class="legend-item"><span class="tag tag-ok" style="padding:3px 9px;font-size:.72rem">🚆 Necessário ronda</span> Ronda ao atingir temperatura indicada</div>' +
-      '<div class="legend-item"><span class="dtq-badge" style="width:26px;height:26px;font-size:.72rem;display:inline-flex;align-items:center;justify-content:center">DTQ</span> Verificar comunicação do equipamento</div>' +
-      "</div>" +
-      "</div>";
-
-    out.innerHTML = html;
+    out.innerHTML =
+      renderizarAlertaMultiplos(termo, grupos) +
+      grupos.map(renderizarSecaoTermometro).join("");
   }
 
   function limpar() {
@@ -660,10 +978,12 @@
     if (e.key === "Escape") fecharSeletorProcedimento();
   });
 
-  document.getElementById("termometro")
-    .addEventListener("keypress", function(e) { if (e.key === "Enter") buscar(); });
+  document.getElementById("termometro").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") buscar();
+  });
 
   carregarDados();
 </script>
+
 </body>
 </html>
