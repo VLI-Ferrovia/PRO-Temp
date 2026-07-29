@@ -5528,7 +5528,7 @@
   {
     "corredor": "Minas Rio",
     "termometro": "EAN",
-    "trecho": "EANESV",
+    "trecho": "EAN-ESV",
     "dtq": true,
     "ronda": "Temperatura ≤ 9 °C"
   },
