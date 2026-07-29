@@ -541,8 +541,12 @@
    * vinculadoA ou vinculado_a. O valor presente no JSON tem prioridade.
    */
   const vinculosTermometros = {
-    /* Exemplo para correção manual, caso necessário:
-       CODIGO_VINCULADO: "CODIGO_PRINCIPAL" */
+    /*
+     * Cadastre aqui SOMENTE vínculos confirmados pela base/procedimento.
+     * Não são mais criados vínculos automaticamente pelo nome dos trechos,
+     * pois isso correlacionava indevidamente ESV, EAN, ZMN e outras siglas.
+     */
+    ZAQ: "ZBA"
   };
 
   async function carregarDados() {
@@ -655,27 +659,36 @@
     return posicoes;
   }
 
-  function codigosAparecemSemSobreposicao(texto, codigoA, codigoB) {
-    const valor = normalizarTexto(texto);
-    const a = normalizarTexto(codigoA);
-    const b = normalizarTexto(codigoB);
+  function trechoRepresentaVinculoExato(texto, codigoA, codigoB) {
+    const valor = normalizarTexto(texto).replace(/[^A-Z0-9]/g, "");
+    const a = normalizarTexto(codigoA).replace(/[^A-Z0-9]/g, "");
+    const b = normalizarTexto(codigoB).replace(/[^A-Z0-9]/g, "");
 
     if (!valor || !a || !b || a === b) return false;
 
-    const posicoesA = obterPosicoes(valor, a);
-    const posicoesB = obterPosicoes(valor, b);
-
-    return posicoesA.some(posA =>
-      posicoesB.some(posB =>
-        posA + a.length <= posB || posB + b.length <= posA
-      )
-    );
+    /*
+     * Só reconhece vínculo quando o trecho é composto EXATAMENTE pelas
+     * duas siglas, em qualquer ordem. Exemplos válidos:
+     * ZAQZBA, ZAQ-ZBA, ZAQ / ZBA.
+     *
+     * Isso impede falsos vínculos quando uma sigla curta aparece apenas
+     * como parte de outro nome de trecho, caso que afetava ESV, EAN, ZMN
+     * e outros termômetros.
+     */
+    return valor === a + b || valor === b + a;
   }
 
   function construirMapaVinculos() {
     const mapa = new Map();
 
-    /* 1. Vínculos configurados manualmente. */
+    /*
+     * IMPORTANTE: vínculos são aceitos apenas quando declarados de forma
+     * explícita. A antiga descoberta automática analisava combinações de
+     * letras dentro de “trecho” e acabava relacionando termômetros sem
+     * vínculo real, como ESV, EAN e ZMN.
+     */
+
+    /* 1. Vínculos confirmados manualmente. */
     Object.entries(vinculosTermometros).forEach(([vinculado, principal]) => {
       const filho = normalizarTexto(vinculado);
       const pai = normalizarTexto(principal);
@@ -687,35 +700,6 @@
       const filho = normalizarTexto(item.termometro);
       const pai = obterTermometroPrincipal(item);
       if (filho && pai && filho !== pai) mapa.set(filho, pai);
-    });
-
-    /*
-     * 3. Descoberta automática pela base.
-     *
-     * Quando uma SB registrada no termômetro principal contém o código de
-     * outro termômetro e o código do próprio principal, sem sobreposição,
-     * o outro termômetro é considerado vinculado ao principal.
-     *
-     * Exemplo: a SB ZAQZBA está cadastrada em ZBA. Logo, ZAQ -> ZBA.
-     * A direção inversa não é criada: pesquisar ZBA continua retornando ZBA.
-     */
-    const codigos = [...new Set(
-      dados.map(item => normalizarTexto(item.termometro)).filter(Boolean)
-    )];
-
-    dados.forEach(item => {
-      const principal = normalizarTexto(item.termometro);
-      const trecho = normalizarTexto(item.trecho);
-
-      if (!principal || !trecho) return;
-
-      codigos.forEach(vinculado => {
-        if (vinculado === principal || mapa.has(vinculado)) return;
-
-        if (codigosAparecemSemSobreposicao(trecho, vinculado, principal)) {
-          mapa.set(vinculado, principal);
-        }
-      });
     });
 
     return mapa;
@@ -766,6 +750,10 @@
      * Ex.: ZAQ inclui ZAQ + ZBA, mas ZBA continua retornando somente ZBA.
      */
     if (porTermometroExato.length > 0) {
+      /*
+       * Retorna o termômetro pesquisado e somente vínculos explicitamente
+       * cadastrados. Nenhuma correlação é inferida pelo texto do trecho.
+       */
       return obterDadosDosTermometros([busca], mapaVinculos);
     }
 
@@ -790,7 +778,7 @@
         mapaVinculos.forEach((principal, vinculado) => {
           if (
             principal === principalDoRegistro &&
-            codigosAparecemSemSobreposicao(trecho, vinculado, principal)
+            trechoRepresentaVinculoExato(trecho, vinculado, principal)
           ) {
             encontrados.add(vinculado);
           }
@@ -864,8 +852,10 @@
 
     return (
       '<div class="multi-thermo-alert" role="alert">' +
-        
-          "</strong>Dados em " + grupos.length + " termômetros: " +
+      
+        '<div class="multi-thermo-alert-content">' +
+          '<div class="multi-thermo-alert-text">A busca por <strong>' + esc(termo) +
+          "</strong> encontrou dados em " + grupos.length + " termômetros: " +
           nomes.join(", ") + ". Os resultados foram separados abaixo.</div>" +
         "</div>" +
       "</div>"
